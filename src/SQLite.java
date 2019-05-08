@@ -88,7 +88,7 @@ public class SQLite {
         Scanner input = new Scanner(System.in);
         RechercheFilm rechercheFilm = new RechercheFilm("bdfilm.sqlite");
         System.out.println("Entrez requête simplifiée");
-        String entry = input.nextLine();
+        String entry = "x"; // input.nextLine();
         rechercheFilm.parseEntryRequest(entry);
         String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry));
         try (FileWriter writer = new FileWriter("sortie.json");
@@ -101,9 +101,8 @@ public class SQLite {
             System.err.format("IOException: %s%n", e);
         }
 
-
-//        System.out.println("d'abord :" + " ");
-//        System.out.println("puis" + " ".trim());
+//        String res = ";rihanna".split(";")[0];
+//        System.out.println(res);
 
     }
 

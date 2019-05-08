@@ -5,13 +5,15 @@ import java.util.Collections;
  *   Information synthétique sur un film.
  */
 public class InfoFilm2 implements Comparable<InfoFilm2> {
-    private String                 _titre;
+
+    public String                 _titre;
     public ArrayList<NomPersonne> _realisateurs;
     public ArrayList<NomPersonne> _acteurs;
     private String                 _pays;
     private int                    _annee;
     private int                    _duree;
     private ArrayList<String>      _autres_titres;
+    public int                     _id;
 
     /**
      *  Constructeur.
@@ -30,7 +32,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2> {
                     String pays,
                     int annee,
                     int duree,
-                    ArrayList<String> autres_titres) {
+                    ArrayList<String> autres_titres, int id) {
         _titre = titre;
         _realisateurs = realisateurs;
         Collections.sort(_realisateurs);
@@ -41,6 +43,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2> {
         _duree = duree;
         _autres_titres = autres_titres;
         Collections.sort(_autres_titres);
+        _id = id;
     }
 
     /**
