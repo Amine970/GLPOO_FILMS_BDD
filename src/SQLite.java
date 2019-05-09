@@ -24,10 +24,11 @@ public class SQLite {
         Scanner input = new Scanner(System.in);
         RechercheFilm rechercheFilm = new RechercheFilm("bdfilm.sqlite");
         System.out.println("Entrez requête simplifiée");
-        String entry = "TITRE Harry Potter OU Star Wars, Marvel"; // input.nextLine();
-        rechercheFilm.parseEntryRequest(entry);
-        rechercheFilm.buildFinalRequest();
-        String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry));
+        String entry = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, après 2018"; // input.nextLine();
+        entry = "TITRE Star Wars OU TITRE Harry Potter, PAYS GB OU US, après 1980 OU EN 1980";
+//        rechercheFilm.parseEntryRequest(entry);
+        //rechercheFilm.buildFinalRequest(entry.toLowerCase().replaceAll("è", "e").toUpperCase());
+        String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry.toLowerCase().replaceAll("è", "e").toUpperCase()));
         try (FileWriter writer = new FileWriter("sortie.json");
              BufferedWriter bw = new BufferedWriter(writer))
         {
@@ -38,7 +39,10 @@ public class SQLite {
             System.err.format("IOException: %s%n", e);
         }
 
-//        String res = ";rihanna".split(";")[0];
+        //String res[] = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, APRES 2018".split(",");
+        //System.out.println(res.length);
+        //for(String x : res)
+            //System.out.println(x);
 //        System.out.println(res);
 
     }

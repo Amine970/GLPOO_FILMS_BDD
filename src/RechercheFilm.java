@@ -1,4 +1,5 @@
-import javax.sound.sampled.Line;
+import org.jetbrains.annotations.NotNull;
+
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.*;
@@ -7,10 +8,7 @@ import java.util.*;
 public class RechercheFilm
 {
     private Connection conn = null;
-    private Map<String, StringBuilder> languageMap = new HashMap<>();
     private Map<Integer, InfoFilm2> infoFilmsMap = new HashMap<>();  // string titre
-    private Map<String, ArrayList<NomPersonne>> filmsActeurs = new HashMap<>(); // clé : film, valeurs : noms acteurs
-    private Map<String, ArrayList<NomPersonne>> filmsRealisateurs = new HashMap<>();
     public RechercheFilm(String monFichierSQLite)
     {
         try
@@ -33,21 +31,6 @@ public class RechercheFilm
         } catch (SQLException ex) {
             System.out.println(ex.getMessage());
         }
-    }
-    public void parseEntryRequest(String request)
-    {
-        String keyWords = "TITRE|DE|AVEC|PAYS|EN|AVANT|APRES";
-        for(String keyWord : keyWords.split("[|]"))
-            languageMap.put(keyWord, new StringBuilder());
-        String keyWordsRegex = "((TITRE)|(DE)|(AVEC)|(PAYS)|(EN)|(AVANT)|(APRES)).*";
-        for(String keyWord : keyWords.split("[|]"))
-            for(String subRequest : request.split(keyWord))
-                languageMap.get(keyWord).append(subRequest.replaceAll(keyWordsRegex,""));
-        for(String s : languageMap.keySet())
-            languageMap.put(s, new StringBuilder(languageMap.get(s).toString().trim().replaceAll(" +"," ")));
-
-        for(String s : languageMap.keySet())
-            System.out.println(s + ":" + languageMap.get(s));
     }
     public String retrouve(String requete)
     {
@@ -116,12 +99,6 @@ public class RechercheFilm
                 retour += x;
                 retour += ",";
             }
-            /*for(String s : infoFilmsMap.keySet())
-            {
-                //System.out.println("ici titre " + s);
-                retour += infoFilmsMap.get(s);
-                retour += ",";
-            }*/
             retour = index==1?retour:retour.substring(0, retour.length()-1);
             retour += "]}";
             return retour;
@@ -129,8 +106,6 @@ public class RechercheFilm
             e.printStackTrace();
             return "";
         }
-
-
     }
     public void addInfoFilm(String _titre, String _realisateurs, String _acteurs, String _pays, int _annee, int _duree, String _autres_titres, int _id)
     {
@@ -166,25 +141,7 @@ public class RechercheFilm
     {
         String titleCondition = getConditionTitre("STAR WARS");
         String fin;
-        fin = "with filtre as (SELECT id_film from " + getConditionPays("harry potter") + " )" +
-                "         SELECT \n" +
-                "         films.id_film, films.titre, films.annee, films.duree,\n" +
-                "         pays.nom AS nomPays,\n" +
-                "         group_concat(autres_titres.titre, '|') AS autres_titress,\n" +
-                "         personnes.prenom, personnes.nom, \n" +
-                "         generique.role \n" +
-                "                FROM filtre\n" +
-                "                JOIN films on films.id_film = filtre.id_film\n" +
-                "                LEFT JOIN autres_titres on autres_titres.id_film = films.id_film\n" +
-                "                JOIN pays on pays.code = films.pays\n" +
-                "                LEFT JOIN generique on generique.id_film = films.id_film\n" +
-                "                LEFT JOIN personnes on personnes.id_personne = generique.id_personne\n" +
-                "                GROUP BY films.id_film, films.titre, films.annee, films.duree,\n" +
-                "                    pays.nom,\n" +
-                "                    personnes.prenom, personnes.nom,\n" +
-                "                    generique.role\n" +
-                "                ORDER BY films.annee ASC";
-        fin = "with filtre as (" + buildFinalRequest() + " )" +
+        fin = "with filtre as (" + buildFinalRequest(simplifiedRequest) + " )" +
                 "         SELECT \n" +
                 "         films.id_film, films.titre, films.annee, films.duree,\n" +
                 "         pays.nom AS nomPays,\n" +
@@ -236,105 +193,92 @@ public class RechercheFilm
                 "        WHERE films.annee > " + annee + "\n" +
                 "     ";
     }
-    public String buildFinalRequest()
+
+    //public String getCondition
+
+    public String getConditionGeneral(String keyword, String condition)
     {
-        Map<String, String> ouMap = new HashMap<>();
-        Map<String, String> etMap = new HashMap<>();
-        String base;
-        String finalS = "";
-        String titreTmp = "";
-        base = languageMap.get("TITRE").toString().replaceAll("(,$)|(OU$)","").trim();
-        base = base.replaceAll("OU",";");
-        //System.out.println((int)'§');
-        System.out.println(base);
-        int ou = 0, et = 0;
-//        for(int i = 0; i < base.length(); i++)
-//        {
-//            char c = base.charAt(i);
-//            if(c != ' ' && i != base.length() - 1)
-//            {
-//                titreTmp += c;
-//            }
-//            else
-//            {
-//                if(i == base.length() - 1)
-//                    titreTmp += c;
-//                if(titreTmp.equals("OU"))
-//                {
-//                    ou++;
-//                    String tmp = "select id_film from ( ";
-//                    tmp += finalS;
-//                    finalS = tmp;
-//                    finalS +=  " union ";
-//                    titreTmp = "";
-//                }
-//                else if(titreTmp.equals(","))
-//                {
-//                    et++;
-//                    finalS += " intersect select id_film form ( select id_film from";
-//                    finalS += getConditionTitre(titreTmp);
-//                }
-//                else
-//                    //finalS += " select id_film from " + getConditionTitre(titreTmp);
-//                    finalS += titreTmp;
-//                titreTmp = "";
-//            }
-//        }
-        //for(int i = 0; i < ou; i++)
-            //finalS += ")";
-        for(int i = 0; i < base.length(); i++)
+        switch (keyword)
         {
-            char c = base.charAt(i);
-            //System.out.println("index : " + i + " c : " + c + " et et = " + et);
-            if(c == ';' && et == 0 )// si on rencontre un ou sans avoir eu de et avant X ou Y
-            {
-                ou = 1;
-                finalS += "select id_film from (";
-                finalS += getConditionTitre(titreTmp);
-                finalS += " union ";
-                titreTmp = "";
-            }
-            else if(c == ';' && et == 1)// si on rencontre un ou après avoir eu un ET : X et Y ou Z
-            {
-                et = 0;
-                ou = 1;
-                finalS += "select id_film from (";
-                finalS += getConditionTitre(titreTmp);
-                finalS += " union ";
-                titreTmp = "";
-            }
-            else if(c == ',' && ou == 0) // si on rencontre un et sans avoir eu de ou : X et Y
-            {
-
-                et = 1;
-                finalS += getConditionTitre(titreTmp);
-                finalS += " intersect ";
-                titreTmp = "";
-            }
-            else if(c == ',' && ou == 1) // si on rencontre un et après avoir eu un ou :  X ou Y et Z
-            {
-                ou = 0;
-                et = 1;
-                finalS += getConditionTitre(titreTmp);
-                finalS += ") ";
-                finalS += " intersect ";
-                titreTmp = "";
-            }
-            else if(i == base.length() - 1)
-            {
-
-                titreTmp+=c;
-                finalS += getConditionTitre(titreTmp);
-                if(ou == 1)
-                {
-                    finalS += ")";
-                }
-                titreTmp = "";
-            }
-            else
-                titreTmp+=c;
+            case "TITRE" :
+                return getConditionTitre(condition);
+            case "PAYS" :
+                return getConditionPays(condition);
+            case "EN" :
+                return getConditionEn(condition);
+            case "AVANT" :
+                return getConditionAvant(condition);
+            case "APRES" :
+                return getConditionApres(condition);
+            // case de, case avec
         }
-        System.out.println(finalS);
-        return finalS;
+
+        return "fail";
+    }
+    public String buildFinalRequest(@NotNull String request)
+    {
+        String keyWords = "TITRE|DE|AVEC|PAYS|EN|AVANT|APRES";
+        String finalS = "";
+        String wordTmp = "";
+        String splitOnAnd[] = request.split(",");
+        for(int i = 0; i < splitOnAnd.length; i++)
+        {
+            String splitOnAndTmp = splitOnAnd[i].trim(); // exemple [TITRE A OU TITRE B]
+            String splitOnOu[] = splitOnAndTmp.split(" OU ");
+            String lastKeyWord = "";
+            if(splitOnOu.length >= 2) // => il y a au moins un ou
+                finalS += " select id_film from (\n";
+            for(int j = 0; j < splitOnOu.length; j++)
+            {
+                //System.out.print(splitOnOu[j] + "|");
+                String subOu = splitOnOu[j].trim();    // exemple [TITRE A]
+                wordTmp = "";
+                int spaceCounter = 0;
+                for(int k = 0; k < subOu.length(); k++)
+                {
+                    char c = subOu.charAt(k);
+                    if(c == ' ' && spaceCounter == 0) // Quand on arrive sur le premier espace
+                    {
+                        spaceCounter++;
+                        //System.out.println(wordTmp);
+                        if(keyWords.indexOf(wordTmp) != -1)
+                        {
+                            lastKeyWord = wordTmp; // save le keyword au cas où l'utilisateur ne réécrit pas (ex TITRE A OU B)
+                            wordTmp = "";
+                        }
+                        else
+                        {
+                            wordTmp += c;
+                            if(j == 0) // si le premier mot n'est pas un keyword et qu'il n'y a pas de lastKeyWord, fail
+                                return "fail : condition mais pas de mot cle";
+                        }
+
+
+                    }
+                    else
+                        wordTmp += c;
+                    if(k == subOu.length() - 1) // j'arrive à la fin du [TITRE A]
+                    {
+                        if(!lastKeyWord.isEmpty())
+                        {
+                            finalS += getConditionGeneral(lastKeyWord, wordTmp);
+                        }
+                        else
+                        {
+                            return keyWords.indexOf(wordTmp) == -1 ? "fail : condition mais pas de mot cle" : "fail : mot cle mais pas de condition";
+                        }
+                    }
+                }
+                if(j != splitOnOu.length - 1) // il reste encore des ou
+                    finalS += " union ";
+            }
+            //System.out.print("  |||||   ");
+            if(splitOnOu.length >= 2) // => il y a au moins un ou
+                finalS += " )\n";
+            if(i != splitOnAnd.length -1)
+                finalS += " intersect ";
+        }
+        //System.out.println(finalS.replaceAll(" +", " "));
+        return finalS.replaceAll(" +", " ");
     }
 }
