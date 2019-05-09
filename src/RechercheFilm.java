@@ -193,8 +193,72 @@ public class RechercheFilm
                 "        WHERE films.annee > " + annee + "\n" +
                 "     ";
     }
+    private String getConditionNomPrenom(String ch1, String ch2)
+    {
+        return "SELECT id_film\n" +
+                "from generique " +
+                "join personnes on generique.id_personne = personnes.id_personne " +
+                "where generique.role = 'A'" +
+                " and (personnes.nom like '" + ch1.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch1.replaceAll("^MC", "MAC") + "') " +
+                " and (personnes.prenom like '" + ch2 + "%' or personnes.prenom_sans_accent like '" + ch2 + "%') " +
+                " union " +
+                "SELECT id_film\n" +
+                "from generique " +
+                "join personnes on generique.id_personne = personnes.id_personne " +
+                "where generique.role = 'A'" +
+                " and (personnes.nom like '" + ch2.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch2.replaceAll("^MC", "MAC") + "') " +
+                " and (personnes.prenom like '" + ch1 + "%' or personnes.prenom_sans_accent like '" + ch1 + "%') ";
+    }
+    public String getConditionAvec(String nomPrenom)
+    {
+        nomPrenom = nomPrenom.trim().replaceAll(" +", " ");
+        String split[] = nomPrenom.split(" ");
+        if(split.length == 1)   // Si un seul terme, on cherche uniquement le nom
+        {
+            //System.out.println("ici mdr");
+            return  "SELECT id_film\n" +
+                    "from generique " +
+                    "join personnes on generique.id_personne = personnes.id_personne " +
+                    "where generique.role = 'A' and (personnes.nom like '" + split[0].replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + split[0].replaceAll("^MC", "MAC") + "') " ;
+        }
+        else if(split.length >= 2) // 2 termes // on considère le nom bon, le prénom n'est que le commencement, on check inverse
+        {
+            String res = "";
+            res += "select id_film from (";
+//            +
+//                            getConditionNomPrenom(split[0], split[1]) +
+            String tmp1 = "", tmp2 = "";
+            for(int max = 0; max < split.length-1; max++)
+            {
+                for(int i = 0; i <= max; i++)
+                {
+                    tmp1 += split[i];
+                    tmp1 += " ";
+                }
 
-    //public String getCondition
+                for(int i = max + 1; i < split.length; i++)
+                {
+                    tmp2 += split[i];
+                    tmp2 += " ";
+                }
+                res += getConditionNomPrenom(tmp1.trim(), tmp2.trim());
+                if(max != split.length - 2)
+                    res += " union ";
+                tmp1 = "";
+                tmp2 = "";
+                //System.out.println("ici max : " + max + " et res : "  + res);
+            }
+
+            res += ")";
+                    return res;
+        }
+        return "";
+    }
+
+    public String getConditionDe(String nomPrenom)
+    {
+        return "";
+    }
 
     public String getConditionGeneral(String keyword, String condition)
     {
@@ -210,7 +274,10 @@ public class RechercheFilm
                 return getConditionAvant(condition);
             case "APRES" :
                 return getConditionApres(condition);
-            // case de, case avec
+            case "DE" :
+                return getConditionDe(condition);
+            case "AVEC" :
+                return getConditionAvec(condition);
         }
 
         return "fail";
@@ -252,8 +319,6 @@ public class RechercheFilm
                             if(j == 0) // si le premier mot n'est pas un keyword et qu'il n'y a pas de lastKeyWord, fail
                                 return "fail : condition mais pas de mot cle";
                         }
-
-
                     }
                     else
                         wordTmp += c;

@@ -25,7 +25,8 @@ public class SQLite {
         RechercheFilm rechercheFilm = new RechercheFilm("bdfilm.sqlite");
         System.out.println("Entrez requête simplifiée");
         String entry = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, après 2018"; // input.nextLine();
-        entry = "TITRE Star Wars OU TITRE Harry Potter, PAYS GB OU US, après 1980 OU EN 1980";
+        entry = "TITRE Star Wars OU TITRE Harry Potter OU Marvel OU Stagecoach, PAYS GB OU US, après 1980 OU EN 1980";
+        entry = "AVEC Chow Yun-Fat";
 //        rechercheFilm.parseEntryRequest(entry);
         //rechercheFilm.buildFinalRequest(entry.toLowerCase().replaceAll("è", "e").toUpperCase());
         String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry.toLowerCase().replaceAll("è", "e").toUpperCase()));

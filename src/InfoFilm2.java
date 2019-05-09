@@ -4,7 +4,8 @@ import java.util.Collections;
 /**
  *   Information synthétique sur un film.
  */
-public class InfoFilm2 implements Comparable<InfoFilm2> {
+public class InfoFilm2 implements Comparable<InfoFilm2>
+{
 
     public String                 _titre;
     public ArrayList<NomPersonne> _realisateurs;
