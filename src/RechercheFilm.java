@@ -81,6 +81,7 @@ public class RechercheFilm
                 _annee = resultSet.getInt("annee");
                 _duree = resultSet.getInt("duree");
                 _autres_titres = resultSet.getString("autres_titress")!=null?resultSet.getString("autres_titress"):"null";
+                //System.out.println(_autres_titres);
                 addInfoFilm(_titre, _realisateurs, _acteurs, _pays, _annee, _duree, _autres_titres, _id);
             }
             String retour = "{\"resultat\":[";
@@ -193,23 +194,23 @@ public class RechercheFilm
                 "        WHERE films.annee > " + annee + "\n" +
                 "     ";
     }
-    private String getConditionNomPrenom(String ch1, String ch2)
+    private String getConditionNomPrenom(String ch1, String ch2, String role)
     {
         return "SELECT id_film\n" +
                 "from generique " +
                 "join personnes on generique.id_personne = personnes.id_personne " +
-                "where generique.role = 'A'" +
+                "where generique.role = '"+role+"'" +
                 " and (personnes.nom like '" + ch1.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch1.replaceAll("^MC", "MAC") + "') " +
                 " and (personnes.prenom like '" + ch2 + "%' or personnes.prenom_sans_accent like '" + ch2 + "%') " +
                 " union " +
                 "SELECT id_film\n" +
                 "from generique " +
                 "join personnes on generique.id_personne = personnes.id_personne " +
-                "where generique.role = 'A'" +
+                "where generique.role = '"+role+"'" +
                 " and (personnes.nom like '" + ch2.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch2.replaceAll("^MC", "MAC") + "') " +
                 " and (personnes.prenom like '" + ch1 + "%' or personnes.prenom_sans_accent like '" + ch1 + "%') ";
     }
-    public String getConditionAvec(String nomPrenom)
+    public String getConditionPersonnes(String nomPrenom, String role)
     {
         nomPrenom = nomPrenom.trim().replaceAll(" +", " ");
         String split[] = nomPrenom.split(" ");
@@ -219,7 +220,7 @@ public class RechercheFilm
             return  "SELECT id_film\n" +
                     "from generique " +
                     "join personnes on generique.id_personne = personnes.id_personne " +
-                    "where generique.role = 'A' and (personnes.nom like '" + split[0].replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + split[0].replaceAll("^MC", "MAC") + "') " ;
+                    "where generique.role = '"+role+"' and (personnes.nom like '" + split[0].replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + split[0].replaceAll("^MC", "MAC") + "') " ;
         }
         else if(split.length >= 2) // 2 termes // on considère le nom bon, le prénom n'est que le commencement, on check inverse
         {
@@ -241,12 +242,12 @@ public class RechercheFilm
                     tmp2 += split[i];
                     tmp2 += " ";
                 }
-                res += getConditionNomPrenom(tmp1.trim(), tmp2.trim());
+                res += getConditionNomPrenom(tmp1.trim(), tmp2.trim(), role);
                 if(max != split.length - 2)
                     res += " union ";
                 tmp1 = "";
                 tmp2 = "";
-                //System.out.println("ici max : " + max + " et res : "  + res);
+                System.out.println("ici max : " + max + " et res : "  + res);
             }
 
             res += ")";
@@ -275,9 +276,9 @@ public class RechercheFilm
             case "APRES" :
                 return getConditionApres(condition);
             case "DE" :
-                return getConditionDe(condition);
+                return getConditionPersonnes(condition, "R");
             case "AVEC" :
-                return getConditionAvec(condition);
+                return getConditionPersonnes(condition, "A");
         }
 
         return "fail";
