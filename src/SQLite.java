@@ -26,10 +26,11 @@ public class SQLite {
         System.out.println("Entrez requête simplifiée");
         String entry = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, après 2018"; // input.nextLine();
         entry = "TITRE Star Wars OU TITRE Harry Potter OU Marvel OU Stagecoach, PAYS GB OU US, après 1980 OU EN 1980";
-        entry = "DE natalie portman";
+        entry = "AVEC Kirk Douglas, Audrey Hepburn OU Marilyn Monroe";
+        entry = "titre 大闹天宫";
 //        rechercheFilm.parseEntryRequest(entry);
         //rechercheFilm.buildFinalRequest(entry.toLowerCase().replaceAll("è", "e").toUpperCase());
-        String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry.toLowerCase().replaceAll("è", "e").toUpperCase()));
+        String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry.toLowerCase().replaceAll("è", "e").replaceAll("\"","").toUpperCase()));
         try (FileWriter writer = new FileWriter("sortie.json");
              BufferedWriter bw = new BufferedWriter(writer))
         {
@@ -44,7 +45,8 @@ public class SQLite {
         //System.out.println(res.length);
         //for(String x : res)
             //System.out.println(x);
-//        System.out.println(res);
+        System.out.println("Harry Potter and the Philosopher's Stone".equals("Harry Potter and the Philosopher's Stone"));
+
 
     }
 

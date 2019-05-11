@@ -53,18 +53,21 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
      *    @return un entier inférieur, égal ou supérieur à; zéro suivant le cas
      */
     @Override
-    public int compareTo(InfoFilm2 autre) {
+    public int compareTo(InfoFilm2 autre)
+    {
         if (autre == null) {
             return 1;
         }
-        int cmp = this._titre.compareTo(autre._titre);
-        if (cmp == 0) {
-            cmp = (this._annee < autre._annee ? -1
-                    : (this._annee == autre._annee ? 0 : 1));
-            if (cmp == 0) {
+        int cmp =  (Integer.compare(autre._annee, this._annee));//this._titre.compareTo(autre._titre);
+        if (cmp == 0)
+        {
+            cmp = this._titre.compareTo(autre._titre);
+            if (cmp == 0)
+            {
                 cmp = this._pays.compareTo(autre._pays);
             }
         }
+
         return cmp;
     }
 

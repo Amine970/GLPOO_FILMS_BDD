@@ -34,6 +34,9 @@ public class RechercheFilm
     }
     public String retrouve(String requete)
     {
+
+        if(requete.substring(0,6).equals("fail :"))
+            return "{\"erreur\":\""+requete+"\"}";
         PreparedStatement preparedStatement;
         ResultSet resultSet;
         String          infoFilm;
@@ -46,43 +49,43 @@ public class RechercheFilm
         int                     _duree;
         String          _autres_titres;
         int _id;
-
+        String prenom, nom;
         try {
             preparedStatement =
                     conn.prepareStatement(requete);
             resultSet = preparedStatement.executeQuery();
             while(resultSet.next())
             {
+                prenom = null;
+                nom = null;
                 _realisateurs="";
                 _acteurs="";
-                _autres_titres = "null";
+                _autres_titres = "";
                 //System.out.println("role : " + resultSet.getString("role") );
                 _id = resultSet.getInt("id_film");
                 _titre = resultSet.getString("titre");
                 //System.out.println("ici titre : " + _titre);
+                //
                 if(resultSet.getString("role") != null && resultSet.getString("role").equals("R"))
                 {
-                    _realisateurs = resultSet.getString("prenom") + "|" + resultSet.getString("nom");
-                    if(_realisateurs.split("[|]").length == 1)
-                    {
-                        _realisateurs += "null";
-                        //System.out.println("ici");
-                    }
+                    _realisateurs = "xD";
+                    prenom = resultSet.getString("prenom") ;
+                    nom = resultSet.getString("nom");
+                }
+                else if(resultSet.getString("role") != null && resultSet.getString("role").equals("A"))
+                {
+                    _acteurs = "xD";
+                    prenom = resultSet.getString("prenom");
+                    nom = resultSet.getString("nom");
+                }
+                //
 
-                }
-                else if(resultSet.getString("role") != null && resultSet.getString("role").equals("A")) {
-                    _acteurs = resultSet.getString("prenom") + "|" + resultSet.getString("nom");
-                    if (_acteurs.split("[|]").length == 1) {
-                        _acteurs += "null";
-                        //System.out.println("ici");
-                    }
-                }
                 _pays = resultSet.getString("nomPays");
                 _annee = resultSet.getInt("annee");
                 _duree = resultSet.getInt("duree");
-                _autres_titres = resultSet.getString("autres_titress")!=null?resultSet.getString("autres_titress"):"null";
+                _autres_titres = resultSet.getString("autres_titress")!=null?resultSet.getString("autres_titress"):"";
                 //System.out.println(_autres_titres);
-                addInfoFilm(_titre, _realisateurs, _acteurs, _pays, _annee, _duree, _autres_titres, _id);
+                addInfoFilm(_titre, prenom, nom, _realisateurs, _acteurs, _pays, _annee, _duree, _autres_titres, _id);
             }
             String retour = "{\"resultat\":[";
             List<InfoFilm2> infoFilm2List = new ArrayList<>();
@@ -92,41 +95,48 @@ public class RechercheFilm
                 infoFilm2List.add(infoFilmsMap.get(s));
             }
             Collections.sort(infoFilm2List);
-            int index = 1;
-            for(InfoFilm2 x : infoFilm2List)
+            int size = infoFilm2List.size();
+            for(int i = 0; i < Math.min(size, 100); i++)
             {
-                index = 2;
-                //System.out.println(index++ + "    " +x._titre);
-                retour += x;
+                retour += infoFilm2List.get(i);
                 retour += ",";
             }
-            retour = index==1?retour:retour.substring(0, retour.length()-1);
-            retour += "]}";
+            retour = size==0?retour:retour.substring(0, retour.length()-1);
+            retour += "]";
+            if(size > 100)
+                retour += ",\"info\":\"Résultat limité à 100 films\"}";
+            else
+                retour += "}";
             return retour;
         } catch (SQLException e) {
             e.printStackTrace();
             return "";
         }
     }
-    public void addInfoFilm(String _titre, String _realisateurs, String _acteurs, String _pays, int _annee, int _duree, String _autres_titres, int _id)
+    public void addInfoFilm(String _titre, String prenom, String nom, String _realisateurs, String _acteurs, String _pays, int _annee, int _duree, String _autres_titres, int _id)
     {
         ArrayList<NomPersonne> acteurs = new ArrayList<>(), realisateurs = new ArrayList<>();
         ArrayList<String> autres_titres = new ArrayList<>();
-        if(!_autres_titres.equals("null"))
-            autres_titres.add(_autres_titres);
+        TreeSet<String> setAutresTitres = new TreeSet<>();
         //System.out.println("real : " + _realisateurs + " act : " + _acteurs);
         if(_acteurs.isEmpty() && !_realisateurs.isEmpty())
-            realisateurs.add(new NomPersonne( _realisateurs.split("[|]")[1], _realisateurs.split("[|]")[0]));
+            realisateurs.add(new NomPersonne(nom, prenom));
         else if(!_acteurs.isEmpty() && _realisateurs.isEmpty())
-            acteurs.add(new NomPersonne( _acteurs.split("[|]")[1], _acteurs.split("[|]")[0]));
+            acteurs.add(new NomPersonne(nom, prenom));
         if(infoFilmsMap.get(_id) == null)    // il n'y a pas encore ce film dans la map, je le rajoute
         {
+            if(!_autres_titres.isEmpty())
+            {
+                for(String s : _autres_titres.split("[|]"))
+                    setAutresTitres.add(s);
+                for(String s : setAutresTitres)
+                    autres_titres.add(s);
+            }
             InfoFilm2 infoFilm = new InfoFilm2(_titre, realisateurs, acteurs, _pays, _annee, _duree, autres_titres, _id);
             infoFilmsMap.put(_id, infoFilm);
         }
         else // ce film est présent dans la map, il faut donc ajouter des réalisateurs ou acteurs
         {
-            InfoFilm2 old = infoFilmsMap.get(_id);
             if(_acteurs.isEmpty() && !_realisateurs.isEmpty())
             {
                 infoFilmsMap.get(_id)._realisateurs.add(realisateurs.get(0));
@@ -135,20 +145,21 @@ public class RechercheFilm
             {
                 infoFilmsMap.get(_id)._acteurs.add(acteurs.get(0));
             }
-
         }
     }
     public String toSQLStatement(String simplifiedRequest)
     {
-        String titleCondition = getConditionTitre("STAR WARS");
         String fin;
-        fin = "with filtre as (" + buildFinalRequest(simplifiedRequest) + " )" +
+        String builtQuery = buildFinalRequest(simplifiedRequest);
+        if(builtQuery.substring(0,6).equals("fail :"))
+            return builtQuery;
+        fin = "with filtre as (" + builtQuery + " )" +
                 "         SELECT \n" +
                 "         films.id_film, films.titre, films.annee, films.duree,\n" +
                 "         pays.nom AS nomPays,\n" +
                 "         group_concat(autres_titres.titre, '|') AS autres_titress,\n" +
                 "         personnes.prenom, personnes.nom, \n" +
-                "         generique.role \n" +
+                "         generique.role\n" +
                 "                FROM filtre\n" +
                 "                JOIN films on films.id_film = filtre.id_film\n" +
                 "                LEFT JOIN autres_titres on autres_titres.id_film = films.id_film\n" +
@@ -156,10 +167,9 @@ public class RechercheFilm
                 "                LEFT JOIN generique on generique.id_film = films.id_film\n" +
                 "                LEFT JOIN personnes on personnes.id_personne = generique.id_personne\n" +
                 "                GROUP BY films.id_film, films.titre, films.annee, films.duree,\n" +
-                "                    pays.nom,\n" +
+                "                    nomPays,\n" +
                 "                    personnes.prenom, personnes.nom,\n" +
-                "                    generique.role\n" +
-                "                ORDER BY films.annee ASC";
+                "                    generique.role\n";
 
         return fin;
     }
@@ -247,7 +257,7 @@ public class RechercheFilm
                     res += " union ";
                 tmp1 = "";
                 tmp2 = "";
-                System.out.println("ici max : " + max + " et res : "  + res);
+                //System.out.println("ici max : " + max + " et res : "  + res);
             }
 
             res += ")";
@@ -263,6 +273,8 @@ public class RechercheFilm
 
     public String getConditionGeneral(String keyword, String condition)
     {
+        condition = condition.trim();
+        System.out.println("key word : " + keyword + " condition : " + condition);
         switch (keyword)
         {
             case "TITRE" :
@@ -281,7 +293,7 @@ public class RechercheFilm
                 return getConditionPersonnes(condition, "A");
         }
 
-        return "fail";
+        return "fail : normalement j'arrive jamais ici";
     }
     public String buildFinalRequest(@NotNull String request)
     {
@@ -289,13 +301,14 @@ public class RechercheFilm
         String finalS = "";
         String wordTmp = "";
         String splitOnAnd[] = request.split(",");
+        String lastKeyWord = "";
         for(int i = 0; i < splitOnAnd.length; i++)
         {
             String splitOnAndTmp = splitOnAnd[i].trim(); // exemple [TITRE A OU TITRE B]
             String splitOnOu[] = splitOnAndTmp.split(" OU ");
-            String lastKeyWord = "";
             if(splitOnOu.length >= 2) // => il y a au moins un ou
                 finalS += " select id_film from (\n";
+
             for(int j = 0; j < splitOnOu.length; j++)
             {
                 //System.out.print(splitOnOu[j] + "|");
@@ -304,6 +317,8 @@ public class RechercheFilm
                 int spaceCounter = 0;
                 for(int k = 0; k < subOu.length(); k++)
                 {
+                    //System.out.println("final : " + finalS);
+                    //System.out.println("mot : " + wordTmp);
                     char c = subOu.charAt(k);
                     if(c == ' ' && spaceCounter == 0) // Quand on arrive sur le premier espace
                     {
@@ -316,22 +331,24 @@ public class RechercheFilm
                         }
                         else
                         {
+                            //System.out.println("ce n'est pas un mot clé c'est " + wordTmp);
                             wordTmp += c;
-                            if(j == 0) // si le premier mot n'est pas un keyword et qu'il n'y a pas de lastKeyWord, fail
-                                return "fail : condition mais pas de mot cle";
+                            if(lastKeyWord.isEmpty()) // si le premier mot n'est pas un keyword et qu'il n'y a pas de lastKeyWord, fail
+                                return "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)";
                         }
                     }
                     else
                         wordTmp += c;
                     if(k == subOu.length() - 1) // j'arrive à la fin du [TITRE A]
                     {
+                       //System.out.println("ici j'ai : " + wordTmp);
                         if(!lastKeyWord.isEmpty())
                         {
                             finalS += getConditionGeneral(lastKeyWord, wordTmp);
                         }
                         else
                         {
-                            return keyWords.indexOf(wordTmp) == -1 ? "fail : condition mais pas de mot cle" : "fail : mot cle mais pas de condition";
+                            return keyWords.indexOf(wordTmp) == -1 ? "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)" : "fail : keyword trouvé mais pas de condition";
                         }
                     }
                 }
@@ -344,7 +361,7 @@ public class RechercheFilm
             if(i != splitOnAnd.length -1)
                 finalS += " intersect ";
         }
-        //System.out.println(finalS.replaceAll(" +", " "));
+        System.out.println(finalS.replaceAll(" +", " "));
         return finalS.replaceAll(" +", " ");
     }
 }
