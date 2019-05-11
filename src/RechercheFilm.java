@@ -9,6 +9,7 @@ public class RechercheFilm
 {
     private Connection conn = null;
     private Map<Integer, InfoFilm2> infoFilmsMap = new HashMap<>();  // string titre
+    private List<String> arguments = new ArrayList<>();
     public RechercheFilm(String monFichierSQLite)
     {
         try
@@ -39,11 +40,9 @@ public class RechercheFilm
             return "{\"erreur\":\""+requete+"\"}";
         PreparedStatement preparedStatement;
         ResultSet resultSet;
-        String          infoFilm;
-
         String                  _titre;
-        String          _realisateurs="";
-        String          _acteurs="";
+        String          _realisateurs;
+        String          _acteurs;
         String                  _pays;
         int                     _annee;
         int                     _duree;
@@ -53,6 +52,9 @@ public class RechercheFilm
         try {
             preparedStatement =
                     conn.prepareStatement(requete);
+            System.out.println(arguments.size());
+            for(int i = 1; i <= arguments.size(); i++)
+                preparedStatement.setString(i,arguments.get(i-1));
             resultSet = preparedStatement.executeQuery();
             while(resultSet.next())
             {
@@ -150,6 +152,7 @@ public class RechercheFilm
     public String toSQLStatement(String simplifiedRequest)
     {
         String fin;
+        simplifiedRequest = simplifiedRequest.toLowerCase().replaceAll("è", "e").toUpperCase();
         String builtQuery = buildFinalRequest(simplifiedRequest);
         if(builtQuery.substring(0,6).equals("fail :"))
             return builtQuery;
@@ -175,50 +178,67 @@ public class RechercheFilm
     }
     public String getConditionTitre(String title)   // filtre pour avoir ids des films qui match le titre
     {
-        return " select id_film from recherche_titre where titre match '" + title + "'  ";
+        arguments.add(title);
+        return " select id_film from recherche_titre where titre match ? ";
     }
     public String getConditionPays(String pays)
     {
+        arguments.add(pays);
+        arguments.add(pays);
         return  " SELECT films.id_film from films\n" +
                 "join pays on films.pays = pays.code\n" +
-                "WHERE films.pays like '" + pays + "' or pays.nom like '" + pays + "' ";
+                "WHERE films.pays like ? or pays.nom like ? ";
     }
     public String getConditionEn(String annee)
     {
+        arguments.add(annee);
         return  " SELECT films.id_film\n" +
                 "        from films\n" +
-                "        WHERE films.annee = " + annee + "\n" +
+                "        WHERE films.annee = ?\n" +
                 "     ";
     }
     public String getConditionAvant(String annee)
     {
+        arguments.add(annee);
         return  " SELECT films.id_film\n" +
                 "        from films\n" +
-                "        WHERE films.annee < " + annee + "\n" +
+                "        WHERE films.annee < ?\n" +
                 "     ";
     }
     public String getConditionApres(String annee)
     {
+        arguments.add(annee);
         return  " SELECT films.id_film\n" +
                 "        from films\n" +
-                "        WHERE films.annee > " + annee + "\n" +
+                "        WHERE films.annee > ?\n" +
                 "     ";
     }
     private String getConditionNomPrenom(String ch1, String ch2, String role)
     {
+        arguments.add(role);
+        arguments.add(ch1.replaceAll("^MC", "MAC"));
+        arguments.add(ch1.replaceAll("^MC", "MAC"));
+        arguments.add(ch2);
+        arguments.add(ch2);
+        arguments.add(role);
+        arguments.add(ch2.replaceAll("^MC", "MAC"));
+        arguments.add(ch2.replaceAll("^MC", "MAC"));
+        arguments.add(ch1);
+        arguments.add(ch1);
+
         return "SELECT id_film\n" +
                 "from generique " +
                 "join personnes on generique.id_personne = personnes.id_personne " +
-                "where generique.role = '"+role+"'" +
-                " and (personnes.nom like '" + ch1.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch1.replaceAll("^MC", "MAC") + "') " +
-                " and (personnes.prenom like '" + ch2 + "%' or personnes.prenom_sans_accent like '" + ch2 + "%') " +
+                "where generique.role = ? " +
+                " and (personnes.nom like ?  or personnes.nom_sans_accent like ? ) " +
+                " and (personnes.prenom like ? || '%' or personnes.prenom_sans_accent like ? || '%' ) " +
                 " union " +
                 "SELECT id_film\n" +
                 "from generique " +
                 "join personnes on generique.id_personne = personnes.id_personne " +
-                "where generique.role = '"+role+"'" +
-                " and (personnes.nom like '" + ch2.replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + ch2.replaceAll("^MC", "MAC") + "') " +
-                " and (personnes.prenom like '" + ch1 + "%' or personnes.prenom_sans_accent like '" + ch1 + "%') ";
+                "where generique.role = ? " +
+                " and (personnes.nom like ? or personnes.nom_sans_accent like ? ) " +
+                " and (personnes.prenom like ? || '%' or personnes.prenom_sans_accent like ? || '%' ) ";
     }
     public String getConditionPersonnes(String nomPrenom, String role)
     {
@@ -226,11 +246,15 @@ public class RechercheFilm
         String split[] = nomPrenom.split(" ");
         if(split.length == 1)   // Si un seul terme, on cherche uniquement le nom
         {
+            arguments.add(role);
+            arguments.add(split[0].replaceAll("^MC", "MAC"));
+            arguments.add(split[0].replaceAll("^MC", "MAC"));
+
             //System.out.println("ici mdr");
             return  "SELECT id_film\n" +
                     "from generique " +
                     "join personnes on generique.id_personne = personnes.id_personne " +
-                    "where generique.role = '"+role+"' and (personnes.nom like '" + split[0].replaceAll("^MC", "MAC") + "' or personnes.nom_sans_accent like '" + split[0].replaceAll("^MC", "MAC") + "') " ;
+                    "where generique.role = ? and (personnes.nom like ? or personnes.nom_sans_accent like ?) " ;
         }
         else if(split.length >= 2) // 2 termes // on considère le nom bon, le prénom n'est que le commencement, on check inverse
         {
@@ -293,7 +317,7 @@ public class RechercheFilm
                 return getConditionPersonnes(condition, "A");
         }
 
-        return "fail : normalement j'arrive jamais ici";
+        return "fail : ...";
     }
     public String buildFinalRequest(@NotNull String request)
     {
