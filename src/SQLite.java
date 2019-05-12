@@ -19,10 +19,11 @@ public class SQLite {
         String entry = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, après 2018"; // input.nextLine();
         entry = "TITRE Star Wars OU TITRE Harry Potter OU Marvel OU Stagecoach, PAYS GB OU US, après 1980 OU EN 1980";
         //entry = "AVEC Kirk Douglas, Audrey Hepburn OU Marilyn Monroe";
-        entry = "EN 2000 ou 2001, pays france, avec a%";
+        entry = "avec von Stroheim";
 //        rechercheFilm.parseEntryRequest(entry);
         //rechercheFilm.buildFinalRequest(entry.toLowerCase().replaceAll("è", "e").toUpperCase());
         String data = rechercheFilm.retrouve(entry);
+        rechercheFilm.fermeBase();
         try (FileWriter writer = new FileWriter("sortie.json");
              BufferedWriter bw = new BufferedWriter(writer))
         {
@@ -32,7 +33,6 @@ public class SQLite {
         } catch (IOException e) {
             System.err.format("IOException: %s%n", e);
         }
-        System.out.println("abcdefghi".compareTo("b"));
 
     }
 
