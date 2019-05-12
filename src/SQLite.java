@@ -1,8 +1,6 @@
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.*;
 import java.util.*;
 
 /**
@@ -10,13 +8,7 @@ import java.util.*;
  * @author
  */
 public class SQLite {
-    /**
-     * Connect to a sample database
-     */
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args)
     {
 //        String data = connect();
@@ -26,11 +18,11 @@ public class SQLite {
         System.out.println("Entrez requête simplifiée");
         String entry = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, après 2018"; // input.nextLine();
         entry = "TITRE Star Wars OU TITRE Harry Potter OU Marvel OU Stagecoach, PAYS GB OU US, après 1980 OU EN 1980";
-        entry = "AVEC Kirk Douglas, Audrey Hepburn OU Marilyn Monroe";
-        //entry = "titre paris, je t'aime";
+        //entry = "AVEC Kirk Douglas, Audrey Hepburn OU Marilyn Monroe";
+        entry = "EN 2000 ou 2001, pays france, avec a%";
 //        rechercheFilm.parseEntryRequest(entry);
         //rechercheFilm.buildFinalRequest(entry.toLowerCase().replaceAll("è", "e").toUpperCase());
-        String data = rechercheFilm.retrouve(rechercheFilm.toSQLStatement(entry));
+        String data = rechercheFilm.retrouve(entry);
         try (FileWriter writer = new FileWriter("sortie.json");
              BufferedWriter bw = new BufferedWriter(writer))
         {
@@ -40,13 +32,7 @@ public class SQLite {
         } catch (IOException e) {
             System.err.format("IOException: %s%n", e);
         }
-
-        //String res[] = "TITRE because you know OU TITRE yes bruh, PAYS France OU Italie, APRES 2018".split(",");
-        //System.out.println(res.length);
-        //for(String x : res)
-            //System.out.println(x);
-        //System.out.println("Harry Potter and the Philosopher's Stone".equals("Harry Potter and the Philosopher's Stone"));
-
+        System.out.println("abcdefghi".compareTo("b"));
 
     }
 

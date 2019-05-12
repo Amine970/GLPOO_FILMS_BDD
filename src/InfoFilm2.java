@@ -7,14 +7,15 @@ import java.util.Collections;
 public class InfoFilm2 implements Comparable<InfoFilm2>
 {
 
-    public String                 _titre;
-    public ArrayList<NomPersonne> _realisateurs;
-    public ArrayList<NomPersonne> _acteurs;
+    private String                 _titre;
+    private ArrayList<NomPersonne> _realisateurs;
+    private ArrayList<NomPersonne> _acteurs;
     private String                 _pays;
     private int                    _annee;
     private int                    _duree;
     private ArrayList<String>      _autres_titres;
     public int                     _id;
+
 
     /**
      *  Constructeur.
@@ -26,6 +27,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
      *  @param annee Année de sortie
      *  @param duree Durée en minutes; 0 ou valeur négative si l'information n'est pas connue
      *  @param autres_titres Liste des titres alternatifs (peut être vide), type titre original ou titre anglais à; l'international
+     *  @param  id Id du film
      */
     public InfoFilm2(String titre,
                     ArrayList<NomPersonne> realisateurs,
@@ -46,9 +48,15 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
         Collections.sort(_autres_titres);
         _id = id;
     }
+    public ArrayList<NomPersonne> get_realisateurs() {
+        return _realisateurs;
+    }
 
+    public ArrayList<NomPersonne> get_acteurs() {
+        return _acteurs;
+    }
     /**
-     *   Comparaison par titre, puis année, puis pays.
+     *   Comparaison par année, puis titre, puis pays.
      *
      *    @return un entier inférieur, égal ou supérieur à; zéro suivant le cas
      */
@@ -58,7 +66,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
         if (autre == null) {
             return 1;
         }
-        int cmp =  (Integer.compare(autre._annee, this._annee));//this._titre.compareTo(autre._titre);
+        int cmp =  (Integer.compare(autre._annee, this._annee));
         if (cmp == 0)
         {
             cmp = this._titre.compareTo(autre._titre);
