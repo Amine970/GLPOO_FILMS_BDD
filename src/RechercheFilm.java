@@ -3,40 +3,57 @@ import java.sql.SQLException;
 import java.sql.*;
 import java.util.*;
 
+/**
+ * Recherche de films dans une base de données
+ * A partir d'une requête simplifiée
+ */
 public class RechercheFilm
 {
     private Connection conn = null;
-    private Map<Integer, InfoFilm2> infoFilmsMap = new HashMap<>();  // string titre
+    private Map<Integer, InfoFilm2> infoFilmsMap = new LinkedHashMap<>();
     private List<String> arguments = new ArrayList<>();
+
+    /**
+     * Constructeur : ouvre la base de données
+     * @param monFichierSQLite
+     */
     public RechercheFilm(String monFichierSQLite)
     {
         try
         {
             String url = "jdbc:sqlite:"+monFichierSQLite;
             conn = DriverManager.getConnection(url);
-            //System.out.println("Connection to SQLite has been established.");
-
         } catch (SQLException e)
         {
-            //System.out.println(e.getMessage());
+            System.out.println(e.getMessage());
         }
     }
+
+    /**
+     * Ferme la base de données
+     * Pour sortir proprement.
+     */
     public void fermeBase()
     {
         try {
-            if (conn != null) {
+            if (conn != null)
                 conn.close();
-            }
         } catch (SQLException ex) {
-            //System.out.println(ex.getMessage());
+            System.out.println(ex.getMessage());
         }
     }
+
+    /**
+     * @param requete Requête dans un langage simplifié
+     *                mots-clés : TITRE|DE|AVEC|PAYS|EN|AVANT|APRES
+     * @return  une chaîne de caractère sous format json avec les informations des films sélectionnés
+     * Le résultat est limité à 100 films, triés par ordre décroissant d'année de sortie, puis par ordre alphabétique
+     */
     public String retrouve(String requete)
     {
         requete = toSQLStatement(requete);
         if(requete.substring(0,6).equals("fail :"))
             return "{\"erreur\":\""+requete+"\"}";
-
         try {
             fetchData(requete);
         }
@@ -49,7 +66,6 @@ public class RechercheFilm
 
         for(int s : infoFilmsMap.keySet())
             infoFilm2List.add(infoFilmsMap.get(s));
-        Collections.sort(infoFilm2List);
         int size = infoFilm2List.size();
         for(int i = 0; i < Math.min(size, 100); i++)
         {
@@ -63,9 +79,10 @@ public class RechercheFilm
         retour.append("}");
         return retour.toString();
     }
-    private void fetchData(String requete) throws SQLException {
+    private void fetchData(String requete) throws SQLException
+    {
         ResultSet resultSet;
-        String autres_titres, prenom, nom;
+        String prenom, nom;
         PreparedStatement preparedStatement =
                 conn.prepareStatement(requete);
         for(int i = 1; i <= arguments.size(); i++)
@@ -88,13 +105,10 @@ public class RechercheFilm
                     nom = resultSet.getString("nom");
                 }
             }
-            autres_titres = resultSet.getString("autres_titress")!=null?resultSet.getString("autres_titress"):"";
             addInfoFilm(resultSet.getString("titre"), prenom, nom, resultSet.getString("role"), resultSet.getString("nomPays"), resultSet.getInt("annee"),
-                    resultSet.getInt("duree"), autres_titres, resultSet.getInt("id_film"));
-
+                    resultSet.getInt("duree"), resultSet.getString("autres_titress"), resultSet.getInt("id_film"));
         }
     }
-
     private void addInfoFilm(String _titre, String prenom, String nom, String role, String _pays, int _annee, int _duree, String _autres_titres, int _id)
     {
         ArrayList<NomPersonne> acteurs = new ArrayList<>(), realisateurs = new ArrayList<>();
@@ -105,7 +119,7 @@ public class RechercheFilm
                 acteurs.add(new NomPersonne(nom, prenom));
             else
                 realisateurs.add(new NomPersonne(nom, prenom));
-        if(!_autres_titres.isEmpty())
+        if(_autres_titres != null)
         {
             Collections.addAll(setAutresTitres, _autres_titres.split("[|]"));
             autres_titres.addAll(setAutresTitres);
@@ -150,7 +164,7 @@ public class RechercheFilm
                 " JOIN films on films.id_film = filtre.id_film  LEFT JOIN autres_titres on autres_titres.id_film = films.id_film " +
                 " JOIN pays on pays.code = films.pays  LEFT JOIN generique on generique.id_film = films.id_film " +
                 " LEFT JOIN personnes on personnes.id_personne = generique.id_personne GROUP BY films.id_film, films.titre, films.annee, films.duree, " +
-                " nomPays, personnes.prenom, personnes.nom,  generique.role ";
+                " nomPays, personnes.prenom, personnes.nom,  generique.role ORDER BY films.annee DESC, films.titre ASC";
     }
     private String getConditionTitre(String titre)   // filtre pour avoir ids des films qui match le titre
     {
@@ -234,17 +248,14 @@ public class RechercheFilm
                 prenom = new StringBuilder();
                 nom = new StringBuilder();
             }
-
             res.append(")");
                     return res.toString();
         }
         return "";
     }
-
     private String switchOnKeyword(String keyword, String condition)
     {
         condition = condition.trim();
-        //System.out.println("key word : " + keyword + " condition : " + condition);
         switch (keyword)
         {
             case "TITRE" :
@@ -262,12 +273,11 @@ public class RechercheFilm
             case "AVEC" :
                 return getConditionPersonnes(condition, "A");
         }
-
         return "fail : ... somehow";
     }
-    private String simpleRequestToSQL(String request)
+    private String simpleRequestToSQL(String request)   // parsing ici
     {
-        String keyWords = "TITRE|DE|AVEC|PAYS|EN|AVANT|APRES";
+        String keyWords = "|TITRE|DE|AVEC|PAYS|EN|AVANT|APRES|";
         StringBuilder finalS = new StringBuilder();
         String wordTmp;
         String[] splitOnAnd = request.split(",");
@@ -290,7 +300,7 @@ public class RechercheFilm
                     if(c == ' ' && spaceCounter == 0) // Quand on arrive sur le premier espace
                     {
                         spaceCounter++;
-                        if(keyWords.contains(wordTmp))
+                        if(keyWords.contains("|"+wordTmp+"|") && !wordTmp.equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))
                         {
                             lastKeyWord = wordTmp; // save le keyword au cas où l'utilisateur ne réécrit pas (ex TITRE A OU B)
                             wordTmp = "";
@@ -305,16 +315,10 @@ public class RechercheFilm
                     else
                         wordTmp += c;
                     if(k == subOu.length() - 1) // j'arrive à la fin du [TITRE A]
-                    {
                         if(!lastKeyWord.isEmpty())
-                        {
                             finalS.append(switchOnKeyword(lastKeyWord, wordTmp));
-                        }
                         else
-                        {
-                            return !keyWords.contains(wordTmp) ? "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)" : "fail : keyword trouvé mais pas de condition";
-                        }
-                    }
+                            return (!keyWords.contains("|"+wordTmp+"|") || !wordTmp.equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))? "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)" : "fail : keyword trouvé mais pas de condition";
                 }
                 if(j != splitOnOu.length - 1) // il reste encore des ou
                     finalS.append(" union ");
