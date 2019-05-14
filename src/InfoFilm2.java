@@ -14,9 +14,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
     private int                    _annee;
     private int                    _duree;
     private ArrayList<String>      _autres_titres;
-    public int                     _id;
-
-
+    private int                     _id;
     /**
      *  Constructeur.
      *
@@ -48,10 +46,16 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
         Collections.sort(_autres_titres);
         _id = id;
     }
+    /**
+     * @return la liste des rélisateurs
+     */
     public ArrayList<NomPersonne> get_realisateurs() {
         return _realisateurs;
     }
 
+    /**
+     * @return la liste des acteurs
+     */
     public ArrayList<NomPersonne> get_acteurs() {
         return _acteurs;
     }
