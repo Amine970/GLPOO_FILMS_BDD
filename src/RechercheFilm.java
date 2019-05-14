@@ -15,7 +15,7 @@ public class RechercheFilm
 
     /**
      * Constructeur : ouvre la base de données
-     * @param monFichierSQLite
+     * @param monFichierSQLite nom du fichier bdd
      */
     public RechercheFilm(String monFichierSQLite)
     {
@@ -126,7 +126,7 @@ public class RechercheFilm
         }
         if(infoFilmsMap.get(_id) == null)    // il n'y a pas encore ce film dans la map, je le rajoute
         {
-            InfoFilm2 infoFilm = new InfoFilm2(_titre, realisateurs, acteurs, _pays, _annee, _duree, autres_titres, _id);
+            InfoFilm2 infoFilm = new InfoFilm2(_titre, realisateurs, acteurs, _pays, _annee, _duree, autres_titres);
             infoFilmsMap.put(_id, infoFilm);
         }
         else // ce film est présent dans la map, il faut donc ajouter des réalisateurs ou acteurs
@@ -138,13 +138,13 @@ public class RechercheFilm
                 {
                     hold = new ArrayList<>(infoFilmsMap.get(_id).get_acteurs());
                     hold.add(acteurs.get(0));
-                    infoFilmsMap.put(_id, new InfoFilm2(_titre, infoFilmsMap.get(_id).get_realisateurs() , hold, _pays, _annee, _duree, autres_titres, _id));
+                    infoFilmsMap.put(_id, new InfoFilm2(_titre, infoFilmsMap.get(_id).get_realisateurs() , hold, _pays, _annee, _duree, autres_titres));
                 }
                 else
                 {
                     hold = new ArrayList<>(infoFilmsMap.get(_id).get_realisateurs());
                     hold.add(realisateurs.get(0));
-                    infoFilmsMap.put(_id, new InfoFilm2(_titre, hold, infoFilmsMap.get(_id).get_acteurs(), _pays, _annee, _duree, autres_titres, _id));
+                    infoFilmsMap.put(_id, new InfoFilm2(_titre, hold, infoFilmsMap.get(_id).get_acteurs(), _pays, _annee, _duree, autres_titres));
                 }
             }
 

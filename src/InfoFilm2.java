@@ -14,7 +14,6 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
     private int                    _annee;
     private int                    _duree;
     private ArrayList<String>      _autres_titres;
-    private int                     _id;
     /**
      *  Constructeur.
      *
@@ -25,7 +24,6 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
      *  @param annee Année de sortie
      *  @param duree Durée en minutes; 0 ou valeur négative si l'information n'est pas connue
      *  @param autres_titres Liste des titres alternatifs (peut être vide), type titre original ou titre anglais à; l'international
-     *  @param  id Id du film
      */
     public InfoFilm2(String titre,
                     ArrayList<NomPersonne> realisateurs,
@@ -33,7 +31,7 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
                     String pays,
                     int annee,
                     int duree,
-                    ArrayList<String> autres_titres, int id) {
+                    ArrayList<String> autres_titres) {
         _titre = titre;
         _realisateurs = realisateurs;
         Collections.sort(_realisateurs);
@@ -44,7 +42,6 @@ public class InfoFilm2 implements Comparable<InfoFilm2>
         _duree = duree;
         _autres_titres = autres_titres;
         Collections.sort(_autres_titres);
-        _id = id;
     }
     /**
      * @return la liste des rélisateurs
