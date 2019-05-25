@@ -51,7 +51,7 @@ public class RechercheFilm
      */
     public String retrouve(String requete)
     {
-        requete = toSQLStatement(requete);
+        requete = versSqlFinal(requete);
         if(requete.substring(0,6).equals("fail :"))
             return "{\"erreur\":\""+requete+"\"}";
         try {
@@ -150,10 +150,10 @@ public class RechercheFilm
 
         }
     }
-    private String toSQLStatement(String simplifiedRequest)
+    private String versSqlFinal(String simplifiedRequest)
     {
         simplifiedRequest = simplifiedRequest.toLowerCase().replaceAll("è", "e").toUpperCase();
-        String builtQuery = simpleRequestToSQL(simplifiedRequest);
+        String builtQuery = simpleRequestToSQL(simplifiedRequest).replaceAll(" +", " ");
         if(builtQuery.substring(0,6).equals("fail :"))
             return builtQuery;
         return  "with filtre as (" + builtQuery + " )" +
@@ -208,50 +208,30 @@ public class RechercheFilm
                 "SELECT id_film from generique join personnes on generique.id_personne = personnes.id_personne " +
                 "where generique.role = ?  and (personnes.nom like ? or personnes.nom_sans_accent like ? )  and (personnes.prenom like ? || '%' or personnes.prenom_sans_accent like ? || '%' ) ";
     }
-    private String getConditionPersonnes(String nomPrenom, String role)
+    private String getConditionPersonnes(String name, String role)  // test de toutes les possibilités de combinaison + inversions nom/prenom
     {
-        nomPrenom = nomPrenom.trim().replaceAll(" +", " ");
-        String split[] = nomPrenom.split(" ");
-        if(split.length == 1)   // Si un seul terme, on cherche uniquement le nom
+        name = name.trim().replaceAll(" +", " ");
+        String[] split = name.split(" ");
+        StringBuilder res = new StringBuilder();
+        res.append("select id_film from (");
+        StringBuilder prenom = new StringBuilder();
+        StringBuilder nom = new StringBuilder();
+        for(int max = -1; max < split.length-1; max++)  // en commençant à -1, s'il y a un seul terme, il est considéré comme Nom
         {
-            arguments.add(role);
-            arguments.add(split[0].replaceAll("^MC", "MAC"));
-            arguments.add(split[0].replaceAll("^MC", "MAC"));
+            for(int i = 0; i <= max; i++)
+                prenom.append(split[i]).append(" ");
 
-            return  "SELECT id_film\n" +
-                    "from generique " +
-                    "join personnes on generique.id_personne = personnes.id_personne " +
-                    "where generique.role = ? and (personnes.nom like ? or personnes.nom_sans_accent like ?) " ;
-        }
-        else if(split.length >= 2) // 2 termes // on considère le nom bon, le prénom n'est que le commencement, on check inverse
-        {
-            StringBuilder res = new StringBuilder();
-            res.append("select id_film from (");
-            StringBuilder prenom = new StringBuilder();
-            StringBuilder nom = new StringBuilder();
-            for(int max = -1; max < split.length-1; max++)
-            {
-                for(int i = 0; i <= max; i++)
-                {
-                    prenom.append(split[i]);
-                    prenom.append(" ");
-                }
+            for(int i = max + 1; i < split.length; i++)
+                nom.append(split[i]).append(" ");
 
-                for(int i = max + 1; i < split.length; i++)
-                {
-                    nom.append(split[i]);
-                    nom.append(" ");
-                }
-                res.append(getConditionNomPrenom(prenom.toString().trim(), nom.toString().trim(), role));
-                if(max != split.length - 2)
-                    res.append(" union ");
-                prenom = new StringBuilder();
-                nom = new StringBuilder();
-            }
-            res.append(")");
-                    return res.toString();
+            res.append(getConditionNomPrenom(prenom.toString().trim(), nom.toString().trim(), role));
+            if(max != split.length - 2)
+                res.append(" union ");
+            prenom = new StringBuilder();
+            nom = new StringBuilder();
         }
-        return "";
+        res.append(")");
+        return res.toString();
     }
     private String switchOnKeyword(String keyword, String condition)
     {
@@ -279,48 +259,47 @@ public class RechercheFilm
     {
         String keyWords = "|TITRE|DE|AVEC|PAYS|EN|AVANT|APRES|";
         StringBuilder finalS = new StringBuilder();
-        String wordTmp;
+        StringBuilder wordTmp;
         String[] splitOnAnd = request.split(",");
-        String lastKeyWord = "";
+        String motClePrec = "";
         for(int i = 0; i < splitOnAnd.length; i++)
         {
             String splitOnAndTmp = splitOnAnd[i].trim(); // exemple [TITRE A OU TITRE B]
-            String splitOnOu[] = splitOnAndTmp.split(" OU ");
+            String[] splitOnOu = splitOnAndTmp.split(" OU ");
             if(splitOnOu.length >= 2) // => il y a au moins un ou
                 finalS.append(" select id_film from (\n");
-
             for(int j = 0; j < splitOnOu.length; j++)
             {
                 String subOu = splitOnOu[j].trim();    // exemple [TITRE A]
-                wordTmp = "";
-                int spaceCounter = 0;
+                wordTmp = new StringBuilder();
+                int nbrEspaces = 0;
                 for(int k = 0; k < subOu.length(); k++)
                 {
                     char c = subOu.charAt(k);
-                    if(c == ' ' && spaceCounter == 0) // Quand on arrive sur le premier espace
+                    if(c == ' ' && nbrEspaces == 0) // Quand on arrive sur le premier espace
                     {
-                        spaceCounter++;
-                        if(keyWords.contains("|"+wordTmp+"|") && !wordTmp.equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))
+                        nbrEspaces++;
+                        if(keyWords.contains("|"+wordTmp+"|") && !wordTmp.toString().equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))
                         {
-                            lastKeyWord = wordTmp; // save le keyword au cas où l'utilisateur ne réécrit pas (ex TITRE A OU B)
-                            wordTmp = "";
+                            motClePrec = wordTmp.toString(); // save le keyword au cas où l'utilisateur ne réécrit pas (ex TITRE A OU B)
+                            wordTmp = new StringBuilder();
                         }
                         else
                         {
-                            wordTmp += c;
-                            if(lastKeyWord.isEmpty()) // si le premier mot n'est pas un keyword et qu'il n'y a pas de lastKeyWord, fail
+                            wordTmp.append(c);
+                            if(motClePrec.isEmpty()) // si le premier mot n'est pas un keyword et qu'il n'y a pas de motClePrec, fail
                                 return "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)";
                         }
                     }
                     else
-                        wordTmp += c;
+                        wordTmp.append(c);
                     if(k == subOu.length() - 1) // j'arrive à la fin du [TITRE A]
-                        if(!lastKeyWord.isEmpty())
-                            finalS.append(switchOnKeyword(lastKeyWord, wordTmp));
+                        if(!motClePrec.isEmpty())
+                            finalS.append(switchOnKeyword(motClePrec, wordTmp.toString()));
                         else
-                            return (!keyWords.contains("|"+wordTmp+"|") || !wordTmp.equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))? "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)" : "fail : keyword trouvé mais pas de condition";
+                            return (!keyWords.contains("|"+wordTmp+"|") || !wordTmp.toString().equals("TITRE|DE|AVEC|PAYS|EN|AVANT|APRES"))? "fail : pas de mot keyword détecté : (TITRE|DE|AVEC|PAYS|EN|AVANT|APRES)" : "fail : keyword trouvé mais pas de condition";
                 }
-                if(j != splitOnOu.length - 1) // il reste encore des ou
+                if(j + 1 != splitOnOu.length) // il reste encore des ou
                     finalS.append(" union ");
             }
             if(splitOnOu.length >= 2) // => il y avait au moins un ou
@@ -328,6 +307,6 @@ public class RechercheFilm
             if(i != splitOnAnd.length -1)
                 finalS.append(" intersect ");
         }
-        return finalS.toString().replaceAll(" +", " ");
+        return finalS.toString();
     }
 }
